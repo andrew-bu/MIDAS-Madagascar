@@ -1,7 +1,4 @@
 function [ agent, moved ] = choosePortfolio( agent, utilityVariables, currentT, modelParameters, mapParameters, demographicVariables, mapVariables )
-%To-DO: Figure out AspirationSet and also why if-else statement around line
-%434 doesn't prevent empty portfolio Sets
-
 %choosePortfolio.m is the main engine for agents to select an income
 %portfolio (and possibly, to move)
 
@@ -126,7 +123,7 @@ for indexL = 1:length(locationList)
     
     %first portfolio is the current portfolio if this is the home city
     if(locationList(indexL) == agent.matrixLocation) %currentLocation
-        
+        firstPortfoliotest = agent.currentPortfolio;
         %Adjust for the fact that initial portfolios may not have a
         %duration or flag specified
         if size(agent.currentPortfolio(1,:),2) == size(utilityVariables.utilityHistory,2)
@@ -166,13 +163,12 @@ for indexL = 1:length(locationList)
     end
 
     %Identify near-term portfolios in each set and weed out those that are
-    %non-selectable. Make sure to replace first layer in portfolioSet with
-    %these
+    %non-selectable. 
     
     nearTermPortfolios = false(totalNumPortfolios,size(utilityVariables.utilityHistory,2));
     for indexP = 1:totalNumPortfolios
-        nearTermPortfolios(indexP,:) = portfolioSet{indexP}(1,1:size(utilityVariables.utilityHistory,2)) .* selectable';  
-        portfolioSet{indexP}(1,1:size(utilityVariables.utilityHistory,2)) = nearTermPortfolios(indexP,:);
+        nearTermPortfolios(indexP,:) = portfolioSet{indexP}(1,1:size(utilityVariables.utilityHistory,2)) .* selectable';
+        portfolioSet{indexP}(1,1:size(utilityVariables.utilityHistory,2)) = nearTermPortfolios(indexP,:);  
     end
 
 
@@ -333,7 +329,7 @@ for indexL = 1:length(locationList)
         
         %Cycle through near-term, mid-term, and aspirational "chunks" in portfolio
         currentPortfolioValue = zeros(agent.numPeriodsEvaluate,1);%Get full portfolio set based on sorted portfolioSubSets that are retained
-        focalPortfolio = portfolioSubSet{indexP}; 
+        focalPortfolio = portfolioSubSet{indexP};
         startDuration = 1;
         for indexK = 1:size(focalPortfolio,1)
 
@@ -344,12 +340,12 @@ for indexL = 1:length(locationList)
             if length(focalPortfolio) == size(utilityVariables.utilityHistory,2) 
                 focalPortfolio = [focalPortfolio agent.numPeriodsEvaluate 1];
             end
+            
             if focalPortfolio(indexK,end) == 1
                 endDuration = startDuration + focalPortfolio(indexK, end-1) - 1;
-
                 currentPortfolioValue(startDuration:endDuration) = focalPortfolio(indexK,1:end-2) * portfolioData(:,startDuration:endDuration);
                 startDuration = endDuration + 1;
-
+               
             elseif startDuration < agent.numPeriodsEvaluate
                 currentPortfolioValue(startDuration:end) = focalPortfolio(indexK,1:end-2) * utilityVariables.aspirations .* ones(1,agent.numPeriodsEvaluate - startDuration + 1);
             end

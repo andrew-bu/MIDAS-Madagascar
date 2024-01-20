@@ -52,7 +52,7 @@ function [portfolioSets] = createPortfolio(portfolio, layers, constraints, prere
 %To-DO:
 %1) Figure out whether to account for income constraints in both
 %backcasting and forecasting
-%2) Figure out how to add an intermediate portfolio
+
 
 %start with all the time in the world
 timeRemaining = ones(1, size(constraints,2)-1);  %will be as long as the cycle defined for layers
@@ -63,9 +63,6 @@ accumulatingDuration = 0; %initialize time for an accumulating portfolio (i.e. t
 [i,j,s] = find(prereqs); %Indices of layers that are prerequisites, where j are requirements
 portfolioSets = [];
 medTermFlag = false; %Flag to indicate if we need to create medium term portfolios
-
-%TEST - CHECK IF THIS IS GIVING DIFFERENT RESULTS
-layers = 1:size(constraints,1);
 
 %First check if portfolio is specified. If not, create one at random (original code)
 if isempty(portfolio)
@@ -122,7 +119,7 @@ if isempty(portfolio)
 
             %Select one aspiration at random
             if length(indAspiration) > 1
-                indAspiration = randsample(indAspiration,1);
+                indAspiration = datasample(indAspiration,1);
             end
             aspiration(1,indAspiration) = true;
             
@@ -132,21 +129,20 @@ if isempty(portfolio)
             portfolioPrereqs(portfolioPrereqs == indAspiration) = []; %remove own layer from aspiration's prereqs
             %Check if any prereqs and pick one at random to add
             if any(selectable(portfolioPrereqs))
-                indPrereq = randsample(portfolioPrereqs,1);
-
+            %if any(portfolioPrereqs)
+                indPrereq = datasample(portfolioPrereqs,1);
                 samplePortfolio(indPrereq) = true;
                 duration = min(max(utilityDuration(indPrereq,1) - agentExperience(indPrereq,1),0),min(utilityDuration(samplePortfolio,2) - agentTraining(samplePortfolio))); %Minimum time durations for pre-reqs, accounting for any experience already accumulated. Note that some layers can be prereqs even if sufficient training is amassed (due to costs), hence max of training needed and 0
             end
             
-            
             %If time is exceeded, remove layers one by one    
             timeRemaining = 1 - sum(constraints(samplePortfolio,2:end),1); 
-            %testb = samplePortfolio
             while any(sum(timeRemaining,1) < 0)  
                 tempLayers = find(samplePortfolio);
+
                 tempLayers(ismember(tempLayers,portfolioPrereqs)) = [];
                 if length(tempLayers) > 1
-                    samplePortfolio(randsample(tempLayers,1)) = false;
+                    samplePortfolio(datasample(tempLayers,1)) = false;
                 else
                     samplePortfolio(tempLayers) = false;
                 end
@@ -159,7 +155,7 @@ if isempty(portfolio)
             while sum(timeRemaining) > 0 && any(selectableLayers)
                 tempLayers = find(selectableLayers,1);
                 if length(tempLayers) > 1
-                    indexS = randsample(tempLayers,1); 
+                    indexS = datasample(tempLayers,1); 
                 else
                     indexS = tempLayers;
                 end
@@ -212,7 +208,7 @@ if isempty(portfolio)
             %Re-iterate to identify any additional selectable layers that agent can deploy
 
             while sum(timeRemaining) > 0 && any(selectableLayers)    
-                indexS = randsample(find(selectableLayers,1),1);    
+                indexS = datasample(find(selectableLayers,1),1);    
                 tempPortfolio(indexS) = true; 
                 timeUse = timeCalc(constraints, tempPortfolio, modelParameters);
                 timeRemaining = 1 - timeUse;    
@@ -228,10 +224,11 @@ if isempty(portfolio)
             portfolioSets = [portfolioSets; [tempPortfolio' accumulatingDuration 1]];
                 
         end
+        
         aspirationDuration = numPeriodsEvaluate - highfidelityDuration - accumulatingDuration; %Time left to dream about aspirations
         portfolioSets = [portfolioSets; [aspiration aspirationDuration 0]];
-        
-        
+
+
     %Forecasting process
     else
         %Find selectable layers. If there are none (e.g. agent is in debt),
@@ -315,7 +312,8 @@ if isempty(portfolio)
         
         aspirationDuration = numPeriodsEvaluate - highfidelityDuration;
         portfolioSets = [portfolioSets; [aspiration aspirationDuration 0]];
-    end 
+    end
+    
         
 %If portfolio layers are already specified    
 else
